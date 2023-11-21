@@ -19,7 +19,7 @@ const corsOptions = {
 cron.schedule("0 */5 * * *", deleteFile);
 
 // Middlewares
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.static("public"));
 app.use(express.json());
 
