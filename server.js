@@ -12,7 +12,7 @@ const deleteFile = require("./services/deleteFile");
 connectDB();
 
 const corsOptions = {
-  origin: process.env.ALLOWED_CLIENTS.split(","),
+  origin: "https://file-transfer-webapp-one.vercel.app/",
 };
 
 // CRON Jobs
