@@ -72,7 +72,7 @@ router.post("/send", async (req, res) => {
 
   //Send email
   const sendMail = require("../services/emailServices");
-  sendMail({
+  await sendMail({
     from: emailFrom,
     to: emailTo,
     subject: "QRush File Sharing",
