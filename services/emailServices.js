@@ -1,8 +1,9 @@
 const { Resend } = require("resend");
 
-const resend = new Resend("re_AjDFC5VT_B5cticF5gPep8ECpt37cnEKf");
 
 const sendMail = async ({ from, to, subject, text, html }) => {
+
+  const resend = new Resend("re_AjDFC5VT_B5cticF5gPep8ECpt37cnEKf");
   console.log(to);
 
   try {

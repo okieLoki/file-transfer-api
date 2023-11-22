@@ -22,72 +22,91 @@ let upload = multer({
 }).single("myfile");
 
 router.post("/", (req, res) => {
-  // store file
-  upload(req, res, async (err) => {
-    if (err) {
-      return res.status(500).send({
-        error: err.message,
-      });
-    }
-    // store into database
-    const file = new File({
-      filename: req.file.filename,
-      uuid: uuidv4(),
-      path: req.file.path,
-      size: req.file.size,
-    });
 
-    const response = await file.save();
-    return res.json({
-      file: `${process.env.APP_BASE_URL}/files/${response.uuid}`,
+  try {
+    // store file
+    upload(req, res, async (err) => {
+      if (err) {
+        return res.status(500).send({
+          error: err.message,
+        });
+      }
+      // store into database
+      const file = new File({
+        filename: req.file.filename,
+        uuid: uuidv4(),
+        path: req.file.path,
+        size: req.file.size,
+      });
+
+      const response = await file.save();
+      return res.json({
+        file: `${process.env.APP_BASE_URL}/files/${response.uuid}`,
+      });
+    })
+  }
+  catch (err) {
+    console.warn(err);
+    return res.status(500).send({
+      error: "Something went wrong",
     });
-  });
+  }
 });
 
 router.post("/send", async (req, res) => {
-  const { uuid, emailTo, emailFrom } = req.body;
 
-  //validate
-  if (!uuid || !emailTo || !emailFrom) {
-    console.warn("uuid or email not found");
-    return res.status(422).send({
-      error: "All fields are required",
+  try {
+    const { uuid, emailTo, emailFrom } = req.body;
+
+    //validate
+    if (!uuid || !emailTo || !emailFrom) {
+      console.warn("uuid or email not found");
+      return res.status(422).send({
+        error: "All fields are required",
+      });
+    }
+
+    //get data from database
+    const file = await File.findOne({ uuid: uuid });
+
+    if (file.sender) {
+      console.warn("Aleady sent");
+      return res.status(422).send({
+        error: "All fields are required",
+      });
+    }
+
+    file.sender = emailFrom;
+    file.receiver = emailTo;
+
+    const response = await file.save();
+
+    //Send email
+    const sendMail = require("../services/emailServices");
+
+    await sendMail({
+      from: emailFrom,
+      to: emailTo,
+      subject: "QRush File Sharing",
+      text: `${emailFrom} shared a file with you`,
+      html: require("../services/emailTemplate")({
+        emailFrom: emailFrom,
+        downloadLink: `${process.env.APP_BASE_URL}/files/${file.uuid}`,
+        size: 1234,
+        expires: "5 Hours",
+      }),
+    });
+
+    return res.send({
+      success: true,
+    })
+  }
+  catch (err) {
+    console.warn(err);
+    return res.status(500).send({
+      error: "Something went wrong",
     });
   }
-
-  //get data from database
-  const file = await File.findOne({ uuid: uuid });
-
-  if (file.sender) {
-    console.warn("Aleady sent");
-    return res.status(422).send({
-      error: "All fields are required",
-    });
-  }
-
-  file.sender = emailFrom;
-  file.receiver = emailTo;
-
-  const response = await file.save();
-
-  //Send email
-  const sendMail = require("../services/emailServices");
-  await sendMail({
-    from: emailFrom,
-    to: emailTo,
-    subject: "QRush File Sharing",
-    text: `${emailFrom} shared a file with you`,
-    html: require("../services/emailTemplate")({
-      emailFrom: emailFrom,
-      downloadLink: `${process.env.APP_BASE_URL}/files/${file.uuid}`,
-      size: 1234,
-      expires: "5 Hours",
-    }),
-  });
-
-  return res.send({
-    success: true,
-  });
 });
 
 module.exports = router;
